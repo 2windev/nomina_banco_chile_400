@@ -1,4 +1,4 @@
-# nominas_banco
+# nomina_banco_chile_400
 Implementación para la generación de nominas bancarias.
 
 - Script [2win_ue_generar_nomina.js](2win_ue_generar_nomina.js) de tipo UserEvent que se ejecuta al crear registro en página Nómina de Pago y registra en tabla personalizada (customrecord_2w_nominas_pago).
