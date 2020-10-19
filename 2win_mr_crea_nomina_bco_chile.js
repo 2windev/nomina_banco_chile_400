@@ -37,9 +37,33 @@ define(['N/runtime', 'N/search', 'N/record', './libs/2WinArchivo-v2.0'],
         }
 
         function map(context) {
+            // Se obtiene ID de Nomina creada.
+            var idNomina = runtime.getCurrentScript().getParameter("custscript_2win_idnominapago_chile");
+            log.debug("idNomina map", idNomina);
 
             // Se obtiene cada detalle de nomina
             var detalle = JSON.parse(context.value);
+
+            // Se graba cada registro obtenido de detalle en la tabla Detalle Nómina de Pago
+            var detalleNominaPago = record.create({
+                type: 'customrecord_2w_detalle_nomina_pago',                  
+            });
+
+            detalleNominaPago.setValue({
+                fieldId: 'custrecord_2w_detpago_nomina',
+                value: idNomina
+            });
+            detalleNominaPago.setValue({
+                fieldId: 'custrecord_2w_detpago_transaccion',
+                value: detalle.internalid
+            });
+            detalleNominaPago.setValue({
+                fieldId: 'custrecord_2w_detpago_monto_a_pagar',
+                value: detalle.monto_documento
+            });
+
+            var detalleCreado = detalleNominaPago.save();
+
 
             // Se genera detalle para cada pago
             var detalleNomina = generarLineaDetallePago(detalle);
