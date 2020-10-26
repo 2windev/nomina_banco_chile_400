@@ -5,12 +5,14 @@ Implementación para la generación de nominas bancarias.
     1. Obtener datos del formulario.
     2. Verificar el código del banco para decidir que tarea ejecutar.
     3. Ejecutar tarea correspondiente al banco seleccionado.
+Dependencias: N/task.
 
 - Script [2win_mr_crear_nomina_bco_chile.js](2win_mr_crear_nomina_bco_chile.js) de tipo Map/Reduce se ejecuta al ingresar registro en página Nómina de Pago para Banco de Chile y genera archivo TXT.
     1. Obtener parámetros desde script [2win_ue_generar_nomina.js](2win_ue_generar_nomina.js)
     2. Ejecutar búsquedas para obtener detalles de pagos.
     3. Crear registros de detalle en tabla personalizada (customrecord_2w_detalle_nomina_pago)
-    4. Generar TXT
+    4. Generar TXT.
+Dependencias: N/runtime, N/search, N/record, libs/2WinArchivo-v2.0.
 
 - Las tablas involucradas en los formularios son **customrecord_2w_nominas_pago** y **customrecord_2w_detalle_nomina_pago**
 
@@ -42,4 +44,8 @@ Implementación para la generación de nominas bancarias.
 
 - El detalle de generación de nóminas se puede visualizar en la página **Detalle Nómina de Pago**
 
-- Para agregar generación de archivo TXT para un nuevo banco se recomienda crear nuevo script de tipo Map/Reduce y agregar lógica correspondiente al script [2win_ue_generar_nomina.js](2win_ue_generar_nomina.js)
+- Para agregar generación de archivo TXT para un nuevo banco se recomienda crear nuevo script de tipo Map/Reduce y agregar lógica correspondiente al script [2win_ue_generar_nomina.js](2win_ue_generar_nomina.js).
+
+- Las librerias personalizadas involucradas so las siguientes:
+
+    - libs/2WinArchivo-v2.0 : permite generar el archivo TXT a partir de los resultados obtenidos en las busquedas de detalle de pagos.

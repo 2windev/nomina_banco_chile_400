@@ -31,6 +31,10 @@ define(['N/runtime', 'N/search', 'N/record', './libs/2WinArchivo-v2.0'],
 
             // Detalle de los Pagos
             var detallesPago = obtenerDetallesPago(idSubsidiaria, cuentaBanco);
+            log.audit({
+                title: 'DetallesPago',
+                details: detallesPago
+            })
             log.debug({ title: 'getInputData', details: detallesPago.length });
 
             return detallesPago;
@@ -43,6 +47,10 @@ define(['N/runtime', 'N/search', 'N/record', './libs/2WinArchivo-v2.0'],
 
             // Se obtiene cada detalle de nomina
             var detalle = JSON.parse(context.value);
+            log.audit({
+                title: 'Detalle',
+                details: detalle
+            })
 
             // Se graba cada registro obtenido de detalle en la tabla Detalle Nómina de Pago
             var detalleNominaPago = record.create({
@@ -67,6 +75,10 @@ define(['N/runtime', 'N/search', 'N/record', './libs/2WinArchivo-v2.0'],
 
             // Se genera detalle para cada pago
             var detalleNomina = generarLineaDetallePago(detalle);
+            log.audit({
+                title: 'DetalleNomina',
+                details: detalleNomina
+            })
             context.write('detalleNomina', detalleNomina);
             
         }
@@ -88,6 +100,11 @@ define(['N/runtime', 'N/search', 'N/record', './libs/2WinArchivo-v2.0'],
             });
 
             var contents = detalle;
+
+            log.audit({
+                title: 'Contents',
+                details: contents
+            })
 
             if (contents.length > 0) {
 
@@ -145,41 +162,101 @@ define(['N/runtime', 'N/search', 'N/record', './libs/2WinArchivo-v2.0'],
                 var transactionSearchObj = search.create({
                     type: "transaction",
                     filters:
-                        [
-                            ["type","anyof","VendPymt","TaxPymt"], 
-                            "AND", 
-                            ["approvalstatus","noneof","3"], 
-                            "AND", 
-                            ["status","noneof","VendPymt:E","VendPymt:A","VendPymt:D","VendPymt:V"],
-                            "AND", 
-                            ["custrecord_2w_detpago_transaccion.internalidnumber","isempty",""], 
-                            "AND", 
-                            ["subsidiary","anyof",idSubsidiaria],		// Param1: Empresa que realizar� el pago 
-                            "AND", 
-                            ["account","anyof",cuentaBanco]			// Param2: Cuenta contable de tipo banco, del Banco de Chile (puede haber m�s de una)
-                        ],
+                    [
+                        ["type","anyof","VendPymt","TaxPymt"], 
+                        "AND", 
+                        ["approvalstatus","noneof","3"], 
+                        "AND", 
+                        ["custrecord_2w_detpago_transaccion.internalidnumber","isempty",""], 
+                        "AND", 
+                        ["status","noneof","VendPymt:E","VendPymt:A","VendPymt:D","VendPymt:V"], 
+                        "AND", 
+                        ["subsidiary","anyof",idSubsidiaria], 
+                        "AND", 
+                        ["account","anyof",cuentaBanco], 
+                        "AND", 
+                        ["vendor.custentity_2w_cuenta_prov_cli_empl","isnotempty",""], 
+                        "AND", 
+                        ["tobeprinted","is","F"]
+                    ],
                     columns:
-                        [
-                            search.createColumn({ name: "formulatext", formula: "'1'", label: "relleno1" }),
-                            search.createColumn({ name: "formulatext", formula: "SUBSTR(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2wrut} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2wrut} ELSE ' ' END, '.', ''), '-', ''), 1, LENGTH(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2wrut} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2wrut} ELSE ' ' END, '.', ''), '-', '')) - 1)", label: "rut" }),
-                            search.createColumn({ name: "formulatext", formula: "SUBSTR(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2wrut} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2wrut} ELSE ' ' END, '.', ''), '-', ''), LENGTH(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2wrut} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2wrut} ELSE ' ' END, '.', ''), '-', '')), 1)", label: "dv_rut" }),
-                            search.createColumn({ name: "formulatext", formula: "REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.entityid} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.entityid} ELSE ' ' END, '.', ''), '-', '')", label: "nombre_proveedor" }),
-                            search.createColumn({ name: "formulatext", formula: "'999'", label: "tipo_documento" }),
-                            search.createColumn({ name: "tranid", label: "numero_documento" }),
-                            search.createColumn({ name: "formulatext", formula: "TO_CHAR({trandate}, 'DDMMYYYY')", label: "fecha_emision" }),
-                            search.createColumn({ name: "formulanumeric", formula: "ABS({amount})", label: "monto_documento" }),
-                            search.createColumn({ name: "formulatext", formula: "' '", label: "observaciones" }),
-                            search.createColumn({ name: "formulatext", formula: "CASE WHEN LPAD(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2w_prov_emp_codigo_sbif_banco} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2w_prov_emp_codigo_sbif_banco} ELSE ' ' END, '.', ''), '-', ''), 3, '0') = '001' THEN '1' ELSE '7' END", label: "medio_pago" }),
-                            search.createColumn({ name: "formulatext", formula: "LPAD(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2w_prov_emp_codigo_sbif_banco} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2w_prov_emp_codigo_sbif_banco} ELSE ' ' END, '.', ''), '-', ''), 3, '0')", label: "codigo_banco" }),
-                            search.createColumn({ name: "formulatext", formula: "REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2w_cuenta_prov_cli_empl} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2w_cuenta_prov_cli_empl} ELSE ' ' END, '.', ''), '-', '')", label: "numero_cuenta" }),
-                            search.createColumn({ name: "formulatext", formula: "'EMA'", label: "tipo_aviso" }),
-                            search.createColumn({ name: "formulatext", formula: "NVL(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.email} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.email} ELSE ' ' END, '.', ''), '-', ''), 'finanzas@flrosas.cl')", label: "email" }),
-                            search.createColumn({ name: "formulatext", formula: "'1'", label: "relleno2" }),
-                            search.createColumn({ name: "internalid", label: "internalid" })
-                        ]
-                });
-                var searchResultCount = transactionSearchObj.runPaged().count;
-                log.debug("transactionSearchObj result count", searchResultCount);
+                    [
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "'1'",
+                          label: "Relleno1"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "SUBSTR(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2wrut} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2wrut} ELSE ' ' END, '.', ''), '-', ''), 1, LENGTH(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2wrut} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2wrut} ELSE ' ' END, '.', ''), '-', '')) - 1)",
+                          label: "RUT Proveedor"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "SUBSTR(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2wrut} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2wrut} ELSE ' ' END, '.', ''), '-', ''), LENGTH(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2wrut} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2wrut} ELSE ' ' END, '.', ''), '-', '')), 1)",
+                          label: "DV"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.entityid} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.entityid} ELSE ' ' END, '.', ''), '-', '')",
+                          label: "Nombre del Proveedor"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "'999'",
+                          label: "Tipo de Documento"
+                       }),
+                       search.createColumn({name: "tranid", label: "Numero del Documento"}),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "TO_CHAR({trandate}, 'DDMMYYYY')",
+                          label: "Fecha Emision "
+                       }),
+                       search.createColumn({
+                          name: "formulanumeric",
+                          formula: "ABS({amount})",
+                          label: "Monto del Documento"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "' '",
+                          label: "Observaciones"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "CASE WHEN LPAD(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2w_prov_emp_codigo_sbif_banco} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2w_prov_emp_codigo_sbif_banco} ELSE ' ' END, '.', ''), '-', ''), 3, '0') = '001' THEN '1' ELSE '7' END",
+                          label: "Medio de Pago"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "LPAD(REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2w_prov_emp_codigo_sbif_banco} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2w_prov_emp_codigo_sbif_banco} ELSE ' ' END, '.', ''), '-', ''), 3, '0')",
+                          label: "Codigo Banco"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "REPLACE(REPLACE(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.custentity_2w_cuenta_prov_cli_empl} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.custentity_2w_cuenta_prov_cli_empl} ELSE ' ' END, '.', ''), '-', '')",
+                          label: "Numero Cuenta"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "'EMA'",
+                          label: "Tipo de aviso"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "NVL(CASE WHEN LENGTH({vendor.entityid}) > 0 THEN {vendor.email} WHEN LENGTH({employee.entityid}) > 0 THEN {employee.email} ELSE ' ' END, 'finanzas@flrosas.cl')",
+                          label: "Direccion e-mail"
+                       }),
+                       search.createColumn({
+                          name: "formulatext",
+                          formula: "'1'",
+                          label: "Relleno2"
+                       }),
+                       search.createColumn({name: "internalid", label: "Pago en NS"})
+                    ]
+                 });
+                 var searchResultCount = transactionSearchObj.runPaged().count;
+                 log.debug("transactionSearchObj result count",searchResultCount);
 
                 transactionSearchObj.run().each(function (result) {
 
